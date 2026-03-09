@@ -35,6 +35,12 @@ export interface User {
   name: string;
   phone?: string;
   email?: string;
+  avatar?: string;
   isSubscribed: boolean;
   plan?: 'Free' | 'Pro' | 'Enterprise';
+  settings?: {
+    notifications: boolean;
+    language: string;
+    theme: 'light' | 'dark';
+  };
 }

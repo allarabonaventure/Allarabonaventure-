@@ -2,7 +2,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Layout from './components/Layout';
 import AgroExpert from './components/AgroExpert';
+import Profile from './components/Profile';
 import { CATEGORIES, COURSES, PLANS } from './constants';
+import { User } from './types';
 import { 
   Phone, ChevronRight, CheckCircle2, CreditCard, Smartphone, Play, Loader2, Video, 
   Sparkles, Filter, X, Clock, BarChart, ListOrdered, CloudSun, MapPin, Wind, 
@@ -14,7 +16,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const STORAGE_KEYS = {
   ENROLLED_COURSES: 'agroexpert_enrolled_courses',
-  DIAGNOSIS: 'agroexpert_diagnosis_history'
+  DIAGNOSIS: 'agroexpert_diagnosis_history',
+  USER_DATA: 'agroexpert_user_data'
 };
 
 const BANK_DETAILS = [
@@ -39,8 +42,13 @@ interface DiagnosisEntry {
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem(STORAGE_KEYS.USER_DATA) !== null;
+  });
+  const [user, setUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.USER_DATA);
+    return saved ? JSON.parse(saved) : null;
+  });
   
   // Payment flow states
   const [showPayModal, setShowPayModal] = useState(false);
@@ -95,9 +103,27 @@ const App: React.FC = () => {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+    }
+  }, [user]);
+
   const handleLogin = (method: 'google' | 'phone') => {
+    const newUser: User = { 
+      name: "Bonaventure", 
+      plan: 'Free', 
+      isSubscribed: false,
+      email: 'allarabonaventure@gmail.com',
+      phone: '+235 66022287',
+      settings: {
+        notifications: true,
+        language: 'Français',
+        theme: 'light'
+      }
+    };
     setIsLoggedIn(true);
-    setUser({ name: "Bonaventure", plan: 'Free' });
+    setUser(newUser);
   };
 
   const handleJoinCourse = (courseId: string) => {
@@ -783,130 +809,17 @@ const App: React.FC = () => {
           </div>
         );
       case 'profile':
+        if (!user) return null;
         return (
-          <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="flex items-center gap-6 bg-white dark:bg-stone-900 p-8 rounded-[2.5rem] border border-stone-200 dark:border-stone-800 shadow-sm">
-              <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center font-black text-3xl border-4 border-white dark:border-stone-800 shadow-md shrink-0">
-                {user?.name[0]}
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-2xl font-black text-stone-900 dark:text-stone-100 truncate tracking-tight">{user?.name}</h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className={`text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest ${
-                    user?.plan === 'Pro' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' : 'bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400'
-                  }`}>
-                    Membre {user?.plan}
-                  </span>
-                  {user?.plan === 'Free' && (
-                    <button 
-                      onClick={() => setShowPayModal(true)}
-                      className="text-[10px] text-emerald-600 dark:text-emerald-500 font-black uppercase tracking-widest hover:underline"
-                    >
-                      Devenir Pro
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <section>
-              <h3 className="text-sm font-black text-stone-400 uppercase tracking-[0.2em] mb-4 ml-2">Mes Performances</h3>
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="bg-white dark:bg-stone-900 p-6 rounded-[2rem] border border-stone-100 dark:border-stone-800 flex flex-col items-center shadow-sm">
-                    <span className="text-3xl font-black text-emerald-600 dark:text-emerald-500">{enrolledCourseIds.length}</span>
-                    <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest text-center mt-1">Modules suivis</span>
-                 </div>
-                 <div className="bg-white dark:bg-stone-900 p-6 rounded-[2rem] border border-stone-100 dark:border-stone-800 flex flex-col items-center shadow-sm">
-                    <span className="text-3xl font-black text-amber-600">{diagnosisHistory.length}</span>
-                    <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest text-center mt-1">Diagnostics effectués</span>
-                 </div>
-              </div>
-            </section>
-
-            {/* Diagnosis History Section */}
-            <section>
-              <div className="flex items-center justify-between mb-4 ml-2">
-                <h3 className="text-sm font-black text-stone-400 uppercase tracking-[0.2em]">Historique des Diagnostics</h3>
-                {diagnosisHistory.length > 0 && (
-                  <button onClick={clearHistory} className="text-red-500 hover:text-red-600 p-1 transition-colors">
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
-              
-              {diagnosisHistory.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {diagnosisHistory.map((item) => (
-                    <div 
-                      key={item.id} 
-                      onClick={() => setSelectedDiagnosis(item)}
-                      className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-100 dark:border-stone-800 p-4 shadow-sm flex items-center gap-4 cursor-pointer hover:border-emerald-500 transition-all group"
-                    >
-                      <img src={item.image} className="w-16 h-16 rounded-xl object-cover shrink-0" alt="Plante" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
-                            {new Date(item.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                          </span>
-                          <Eye size={14} className="text-stone-300 group-hover:text-emerald-500 transition-colors" />
-                        </div>
-                        <h4 className="font-bold text-stone-900 dark:text-stone-100 text-xs truncate">{item.crop}</h4>
-                        <p className="text-[10px] text-stone-500 line-clamp-1 italic mt-0.5">{item.result}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-12 bg-stone-50 dark:bg-stone-800/30 rounded-[2rem] border-2 border-dashed border-stone-200 dark:border-stone-800 text-center">
-                  <History className="mx-auto text-stone-300 dark:text-stone-700 mb-2" size={32} />
-                  <p className="text-xs text-stone-400 font-bold uppercase tracking-widest">Aucun historique de diagnostic</p>
-                  <button onClick={() => setActiveTab('expert')} className="text-emerald-600 text-[10px] font-black uppercase mt-2 hover:underline">Analyser ma première plante</button>
-                </div>
-              )}
-            </section>
-
-            <section>
-              <h3 className="text-sm font-black text-stone-400 uppercase tracking-[0.2em] mb-4 ml-2">Plans d'abonnement</h3>
-              <div className="grid grid-cols-1 gap-6">
-                {PLANS.map(plan => (
-                  <div key={plan.id} className={`p-8 rounded-[2.5rem] border-2 transition-all relative overflow-hidden ${
-                    plan.popular 
-                      ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/10' 
-                      : 'border-stone-100 dark:border-stone-800 bg-white dark:bg-stone-900 shadow-sm'
-                  }`}>
-                    {plan.popular && (
-                      <span className="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] font-black px-6 py-2 rounded-bl-3xl uppercase tracking-widest shadow-xl">Recommandé</span>
-                    )}
-                    <div className="flex justify-between items-end mb-6">
-                      <div>
-                        <h4 className="text-2xl font-black text-stone-900 dark:text-stone-100 tracking-tight">{plan.name}</h4>
-                        <p className="text-emerald-700 dark:text-emerald-500 font-black text-lg mt-1">{plan.price}</p>
-                      </div>
-                    </div>
-                    <ul className="space-y-4 mb-8">
-                      {plan.features.map((f, i) => (
-                        <li key={i} className="flex items-start gap-3 text-sm text-stone-700 dark:text-stone-300 font-bold">
-                          <CheckCircle2 size={18} className="text-emerald-500 mt-0.5 shrink-0" />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                    <button 
-                      onClick={() => plan.id !== 'free' && setShowPayModal(true)}
-                      disabled={plan.id === 'free'}
-                      className={`w-full py-5 rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-lg transition-all ${
-                        plan.id === 'free' 
-                          ? 'bg-stone-100 dark:bg-stone-800 text-stone-400 dark:text-stone-600' 
-                          : 'bg-emerald-600 text-white shadow-emerald-200 dark:shadow-none hover:bg-emerald-700 active:scale-[0.98]'
-                      }`}
-                    >
-                      {plan.id === 'free' ? 'Plan Actuel' : 'Souscrire'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
+          <Profile 
+            user={user}
+            setUser={setUser}
+            diagnosisHistory={diagnosisHistory}
+            clearHistory={clearHistory}
+            setSelectedDiagnosis={setSelectedDiagnosis}
+            enrolledCourseIds={enrolledCourseIds}
+            onUpgrade={() => setShowPayModal(true)}
+          />
         );
       default:
         return null;
@@ -1177,7 +1090,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={user}>
+    <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={user} setUser={setUser}>
       {renderContent()}
       {renderPaymentModal()}
       {renderDiagnosisDetailModal()}

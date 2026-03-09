@@ -153,6 +153,17 @@ const AgroExpert: React.FC = () => {
     }
   }, [selectedDiseaseTab, cropName, isOnline]);
 
+  // Helpers to identify step types
+  const isFertilizationStep = (description: string) => {
+    const desc = description.toLowerCase();
+    return desc.includes('fertili') || desc.includes('engrais') || desc.includes('npk') || desc.includes('urée') || desc.includes('fumure');
+  };
+
+  const isPhytoStep = (description: string) => {
+    const desc = description.toLowerCase();
+    return desc.includes('traitement') || desc.includes('phyto') || desc.includes('insect') || desc.includes('fongi') || desc.includes('pesticide') || desc.includes('maladie') || desc.includes('ravageur');
+  };
+
   // Helper to get thematic icon for steps
   const getStepIconWithContext = (description: string) => {
     const desc = description.toLowerCase();
@@ -162,10 +173,10 @@ const AgroExpert: React.FC = () => {
     if (desc.includes('semis') || desc.includes('plantation') || desc.includes('repiquage')) {
       icon = <Sprout size={16} />;
       colorClass = "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400";
-    } else if (desc.includes('fertili') || desc.includes('engrais') || desc.includes('npk') || desc.includes('urée')) {
+    } else if (isFertilizationStep(description)) {
       icon = <FlaskConical size={16} />;
       colorClass = "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400";
-    } else if (desc.includes('traitement') || desc.includes('phyto') || desc.includes('pulv') || desc.includes('insect') || desc.includes('maladie')) {
+    } else if (isPhytoStep(description) || desc.includes('pulv')) {
       icon = <Bug size={16} />;
       colorClass = "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400";
     } else if (desc.includes('arrosage') || desc.includes('irrigation')) {
@@ -183,16 +194,6 @@ const AgroExpert: React.FC = () => {
     }
 
     return { icon, colorClass };
-  };
-
-  const isFertilizationStep = (description: string) => {
-    const desc = description.toLowerCase();
-    return desc.includes('fertili') || desc.includes('engrais') || desc.includes('npk') || desc.includes('urée') || desc.includes('fumure');
-  };
-
-  const isPhytoStep = (description: string) => {
-    const desc = description.toLowerCase();
-    return desc.includes('traitement') || desc.includes('phyto') || desc.includes('insect') || desc.includes('fongi') || desc.includes('pesticide') || desc.includes('maladie') || desc.includes('ravageur');
   };
 
   // Connection listeners
@@ -1190,6 +1191,16 @@ const AgroExpert: React.FC = () => {
                                      {status === 'overdue' && !step.completed && <span className="text-[8px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded uppercase animate-pulse">Retard</span>}
                                      {status === 'upcoming' && !step.completed && <span className="text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded uppercase">Urgent</span>}
                                   </div>
+                                  {isFert && !step.completed && (
+                                    <button 
+                                      onClick={() => fetchFertilizerAdviceForStep(step.id, step.description)}
+                                      disabled={currentAdvice?.loading}
+                                      className={`mt-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm transition-all active:scale-95 ${currentAdvice ? 'bg-emerald-700 text-white' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
+                                    >
+                                      {currentAdvice?.loading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                                      {currentAdvice ? 'Masquer Conseil' : 'Conseil Engrais IA'}
+                                    </button>
+                                  )}
                                 </div>
                              </div>
                           </div>

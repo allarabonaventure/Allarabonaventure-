@@ -7,14 +7,22 @@ interface LayoutProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   user: any;
+  setUser?: (user: any) => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user, setUser }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [theme, setTheme] = React.useState<'light' | 'dark'>(() => {
+    if (user?.settings?.theme) return user.settings.theme;
     const saved = localStorage.getItem('agroexpert_theme');
     return (saved as 'light' | 'dark') || 'light';
   });
+
+  useEffect(() => {
+    if (user?.settings?.theme && user.settings.theme !== theme) {
+      setTheme(user.settings.theme);
+    }
+  }, [user?.settings?.theme]);
   const [language, setLanguage] = React.useState('Français');
 
   useEffect(() => {
@@ -27,7 +35,17 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, user
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    if (setUser && user) {
+      setUser({
+        ...user,
+        settings: {
+          ...user.settings,
+          theme: newTheme
+        }
+      });
+    }
   };
 
   const navItems = [
