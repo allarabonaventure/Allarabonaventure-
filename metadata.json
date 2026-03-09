@@ -1,0 +1,9 @@
+{
+  "name": "Copy of Copy of AgroExpert Afrique",
+  "description": "Une plateforme agronomique complète pour l'Afrique : formation, itinéraires techniques, phytopathologie, agro-business et plus encore.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
